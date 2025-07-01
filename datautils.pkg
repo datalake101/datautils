@@ -1,0 +1,10 @@
+v 3
+d datautils
+d A collection of utilities for data exploration
+d This package provides commands for data exploration and cleaning tasks.
+d Distribution-Date: 20240702
+f stata.toc
+f misschk.ado
+f varcats.ado
+f varlabels.ado
+f varmiss.ado
