@@ -1,12 +1,11 @@
-v 1.1
-p datautils: A collection of utilities for data exploration and cleaning
+v 1.0
+p datautils: A collection of utilities for data exploration
 d 'datautils':
 d Description: This package provides several commands to assist with
-d common data exploration and cleaning tasks, such as checking for
-d missing values and describing variable categories.
+d common data exploration and cleaning tasks.
 d
-d Distribution-Date: 20231028
-p varcats: Describe variable categories and their contents
-p varlabels: (Add a short description for this command)
-p varmiss: (Add a short description for this command)
-p misschk: Display a report of missing values for each variable
+d Distribution-Date: 20240702
+p varcats: Display variable categories and descriptions
+p varlabels: Display variable labels
+p misschk: Display a report of missing values
+p varmiss: Display variables sorted by missing percentage
