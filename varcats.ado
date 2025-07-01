@@ -1,153 +1,162 @@
-*! version 9.0.0 FINAL YourName DD-Mon-YYYY
-*! Program to describe variable categories. Fixes r(198) error by
-*! correcting code formatting on an 'if' statement's open brace.
+*! varcats: display variable names and categories for numeric variables
+*! version 2.5.0 - Fixed row addition issues
+program define varcatsss
+    version 15
+    syntax [varlist(default=none)] [using/] [, APPend REPLACE]
+    
 
-program define varcats
-
-    version 14 // Keep for compatibility
-
-    // --- FULLY MANUAL PARSING OF VARLIST AND OPTIONS ---
-    local raw_input `"`0'"'
-    local comma_pos = strpos(`"`raw_input'"', ",")
-    if `comma_pos' > 0 {
-        local varlist = trim(substr(`"`raw_input'"', 1, `comma_pos'-1))
-        local options = trim(substr(`"`raw_input'"', `comma_pos', .))
+    // If no varlist specified, use all numeric variables
+    if "`varlist'" == "" {
+        quietly ds, has(type numeric)
+        local varlist `r(varlist)'
     }
     else {
-        local varlist `"`raw_input'"'
-        local options ""
-    }
-
-    local export_filename ""
-    if `"`options'"' != "" {
-        gettoken keyword rest : options, parse("()")
-        gettoken filename rest : rest, parse("()")
-        if `"`keyword'"' == "export" | `"`keyword'"' == ",export" {
-            local export_filename `"`filename'"'
-        }
+        // Keep only numeric variables from the user-specified varlist
+        quietly ds `varlist', has(type numeric)
+        local varlist `r(varlist)'
     }
     
-    if `"`varlist'"' == "" {
-        unab varlist : _all
+    // Exit if no numeric variables
+    if "`varlist'" == "" {
+        display as text "No numeric variables found."
+        exit
     }
-
-
-    // --- SETUP FOR WORD EXPORT (if requested) ---
-    if `"`export_filename'"' != "" {
-        if !strmatch(`"`export_filename'"', "*.docx") {
-            local export_filename `"`export_filename'.docx"'
-        }
-        putdocx begin, replace
-        putdocx paragraph, style(Title)
-        putdocx text ("Variable Category Description")
-        putdocx paragraph
-        putdocx table doctable = (2), border(all)
-        putdocx table doctable(1,1), bold = on
-        putdocx table doctable(1,1) = ("Variable Name")
-        putdocx table doctable(1,2), bold = on
-        putdocx table doctable(1,2) = ("Categories / Description")
-        local row_num = 2
-    }
-
-
-    // --- MAIN PROGRAM LOGIC ---
     
-    local continuous_threshold = 10
-    display as text %-20s "Variable Name" "   " as result "Categories / Description"
-    display as text %-20s "---------------" "   " as result "------------------------"
-
-    foreach var of local varlist {
-        local varname_display `"`var'"'
-        local printed_something = 0
-        local vallabel : value label `var'
-
-        // --- Streamlined Logic: Determine category text once, then display/export ---
+    // Setup Word document if using option is specified
+    if `"`using'"' != "" {
+        // Clear any active putdocx document
+        capture putdocx close
+        capture putdocx clear
         
-        if `"`vallabel'"' != "" { // Case 1: Value Labels
-            quietly levelsof `var', local(levels) missing
-            foreach level of local levels {
-                local lbl : label (`var') `level'
-                local category_text `"`level': `lbl'"'
-                display as text %-20s `"`varname_display'"' "   " as result `"`category_text'"'
-                if `"`export_filename'"' != "" {
-                    putdocx table doctable(`row_num', 1) = (`"`varname_display'"')
-                    putdocx table doctable(`row_num', 2) = (`"`category_text'"')
-                    local ++row_num
-                }
-                local varname_display ""
-            }
-            local printed_something = 1
+        // Handle document creation
+        if "`append'" != "" {
+            putdocx append `"`using'"'
+        }
+        else if "`replace'" != "" {
+            putdocx begin
         }
         else {
-            local vartype : type `var'
-            if substr(`"`vartype'"', 1, 3) == "str" { // Case 2: String Variable
-                qui levelsof `var', local(levels)
-                if wordcount(`"`levels'"') > `continuous_threshold' {
-                    local category_text "String (many unique values)"
-                    display as text %-20s `"`varname_display'"' "   " as result `"`category_text'"'
-                    if `"`export_filename'"' != "" {
-                        putdocx table doctable(`row_num', 1) = (`"`varname_display'"')
-                        putdocx table doctable(`row_num', 2) = (`"`category_text'"')
-                        local ++row_num
-                    }
-                }
-                else {
-                    foreach level of local levels {
-                        local category_text `"`level'"'
-                        display as text %-20s `"`varname_display'"' "   " as result `"`category_text'"'
-                        if `"`export_filename'"' != "" {
-                            putdocx table doctable(`row_num', 1) = (`"`varname_display'"')
-                            putdocx table doctable(`row_num', 2) = (`"`category_text'"')
-                            local ++row_num
-                        }
-                        local varname_display ""
-                    }
-                }
-                local printed_something = 1
+            capture confirm file `"`using'"'
+            if _rc {
+                putdocx begin
             }
-            else { // Case 3: Numeric Variable
-                qui inspect `var'
-                if (r(N_unique) > `continuous_threshold' | r(N_int) < r(N)) {
-                    qui su `var', meanonly
-                    // --- ** THIS IS THE CORRECTED CODE ** ---
-                    if r(N) > 0 {
-                        local category_text "Mean = " + string(r(mean), "%9.2f")
-                    }
-                    else { 
-                        local category_text "(All missing)" 
-                    }
-                    // ------------------------------------------
-                    display as text %-20s `"`varname_display'"' "   " as result `"`category_text'"'
-                    if `"`export_filename'"' != "" {
-                        putdocx table doctable(`row_num', 1) = (`"`varname_display'"')
-                        putdocx table doctable(`row_num', 2) = (`"`category_text'"')
-                        local ++row_num
-                    }
-                }
-                else {
-                    levelsof `var', local(levels) missing
-                    foreach level of local levels {
-                        local category_text "`level'"
-                        display as text %-20s `"`varname_display'"' "   " as result `"`category_text'"'
-                        if `"`export_filename'"' != "" {
-                            putdocx table doctable(`row_num', 1) = (`"`varname_display'"')
-                            putdocx table doctable(`row_num', 2) = (`"`category_text'"')
-                            local ++row_num
-                        }
-                        local varname_display ""
-                    }
-                }
-                local printed_something = 1
+            else {
+                display as error "File `using' already exists. Use replace or append option."
+                exit 602
             }
         }
-        if `printed_something' == 0 {
-            display as text %-20s `"`varname_display'"' "   " as result "(All missing or empty)"
+        
+        // Create document header
+        putdocx paragraph, style("Heading1")
+        putdocx text ("Variable Categories Report")
+        putdocx paragraph
+        putdocx text ("Generated on: $S_DATE at $S_TIME")
+        putdocx table tbl = (1,2), border(all, single) layout(autofitcontents)
+        putdocx table tbl(1,1) = ("Variable Name"), halign(center) bold
+        putdocx table tbl(1,2) = ("Categories"), halign(center) bold
+        local row = 1  // Start after header row
+    }
+    
+    // Find max variable name length for alignment
+    local maxlen = 0
+    foreach v of local varlist {
+        if length("`v'") > `maxlen' {
+            local maxlen = length("`v'")
         }
+    }
+    local col1 = `maxlen' + 3  // First column width
+    
+    // Display header
+    display _newline
+    display as text %`maxlen's "Variable Name" _col(`col1') "categories"
+    display ""
+    
+    // Process each variable
+    foreach v of local varlist {
+        local vallab : value label `v'  // Attached value label
+        
+        // Get distinct values including missing
+        capture levelsof `v', local(values) missing
+        if _rc {
+            // Results window output
+            display %`maxlen's "`v'" _col(`col1') "Error: cannot get levels"
+            
+            // Word document output
+            if `"`using'"' != "" {
+                local ++row
+                putdocx table tbl = (1,2), tabletype(addrow) rownum(`row')
+                putdocx table tbl(`row',1) = ("`v'"), bold
+                putdocx table tbl(`row',2) = ("Error: cannot get levels")
+            }
+            continue
+        }
+        
+        if "`vallab'" != "" {
+            // Has value labels (categorical)
+            if "`values'" == "" {
+                // Results window output
+                display %`maxlen's "`v'" _col(`col1') "No observations"
+                
+                // Word document output
+                if `"`using'"' != "" {
+                    local ++row
+                    putdocx table tbl = (1,2), tabletype(addrow) rownum(`row')
+                    putdocx table tbl(`row',1) = ("`v'"), bold
+                    putdocx table tbl(`row',2) = ("No observations")
+                }
+            }
+            else {
+                local first 1
+                local valcount 0
+                foreach val in `values' {
+                    local valcount = `valcount' + 1
+                    capture local lab : label `vallab' `val'
+                    if _rc local lab `val'  // Fallback to raw value
+                    
+                    // Results window output
+                    if `first' {
+                        display %`maxlen's "`v'" _col(`col1') "`val' `lab'"
+                        local first 0
+                    }
+                    else {
+                        display %`maxlen's "" _col(`col1') "`val' `lab'"
+                    }
+                    
+                    // Word document output
+                    if `"`using'"' != "" {
+                        local ++row
+                        putdocx table tbl = (1,2), tabletype(addrow) rownum(`row')
+                        if `valcount' == 1 {
+                            putdocx table tbl(`row',1) = ("`v'"), bold
+                        }
+                        else {
+                            putdocx table tbl(`row',1) = ("")
+                        }
+                        putdocx table tbl(`row',2) = ("`val' `lab'")
+                    }
+                }
+            }
+        }
+        else {
+            // No value labels (continuous)
+            // Results window output
+            display %`maxlen's "`v'" _col(`col1') "Continuous"
+            
+            // Word document output
+            if `"`using'"' != "" {
+                local ++row
+                putdocx table tbl = (1,2), tabletype(addrow) rownum(`row')
+                putdocx table tbl(`row',1) = ("`v'"), bold
+                putdocx table tbl(`row',2) = ("Continuous")
+            }
+        }
+    }
+    
+    // Save Word document if using option is specified
+    if `"`using'"' != "" {
+        putdocx save `"`using'"', replace
+        display _newline
+        display as text "Output saved to Word document: " as result `"`using'"'
     }
 
-    // --- SAVE THE WORD DOCUMENT (if requested) ---
-    if `"`export_filename'"' != "" {
-        putdocx save `"`export_filename'"', replace
-        display as text _n "Success! Output saved to: " as result `"`export_filename'"'
-    }
 end
