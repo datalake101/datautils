@@ -1,12 +1,12 @@
-v 1.0
-p mmmutils: A collection of utilities for data exploration
-d 'mmmutils':
+v 1.1
+p datautils: A collection of utilities for data exploration and cleaning
+d 'datautils':
 d Description: This package provides several commands to assist with
 d common data exploration and cleaning tasks, such as checking for
 d missing values and describing variable categories.
 d
-d Distribution-Date: 20231027
-p varcats: Display variable categories and descriptions
-p vlist: Display a compact list of variable names
-p misschk: Display a report of missing values
-p keepcat: Keep only categorical variables in the dataset
+d Distribution-Date: 20231028
+p varcats: Describe variable categories and their contents
+p varlabels: (Add a short description for this command)
+p varmiss: (Add a short description for this command)
+p misschk: Display a report of missing values for each variable
