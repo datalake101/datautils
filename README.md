@@ -9,10 +9,13 @@ net install datautils, from("https://raw.githubusercontent.com/datalake101/datau
 
 
 **Commands Included**
+
 varcats: Intelligently describes the contents of variables. It shows value labels for labeled variables, lists unique categories for categorical variables, and reports continuous or high-cardinality variables with their mean. It also includes an option to export the summary to a formatted Word document.
+
 misschk: Generates a clean, formatted report showing the count and percentage of missing values for each variable in the dataset.
+
 varlabels: Provides a compact, side-by-side list of variable names and their corresponding variable labels for quick reference.
-keepcat: A data management utility that keeps only the categorical variables in the dataset, based on a set of rules (value labels, strings, or a low number of unique integers).
+
 
 Example Usage
 
