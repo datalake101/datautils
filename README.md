@@ -13,7 +13,9 @@ varcats: Intelligently describes the contents of variables. It shows value label
 misschk: Generates a clean, formatted report showing the count and percentage of missing values for each variable in the dataset.
 varlabels: Provides a compact, side-by-side list of variable names and their corresponding variable labels for quick reference.
 keepcat: A data management utility that keeps only the categorical variables in the dataset, based on a set of rules (value labels, strings, or a low number of unique integers).
+
 Example Usage
+
 Generated stata
 // Load an example dataset
 sysuse auto, clear
